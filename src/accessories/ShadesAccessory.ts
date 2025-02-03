@@ -6,17 +6,14 @@ import { Observer } from '../Observer';
 import { PlatformAccessory } from 'homebridge';
 import { ButtonService, WindowCoveringService } from '../Services';
 
-export class ShadesAccessory implements BondAccessory  {
-  platform: BondPlatform
-  accessory: PlatformAccessory
-  windowCoveringService: WindowCoveringService
-  presetService?: ButtonService
-  toggleStateService?: ButtonService
+export class ShadesAccessory implements BondAccessory {
+  platform: BondPlatform;
+  accessory: PlatformAccessory;
+  windowCoveringService: WindowCoveringService;
+  presetService?: ButtonService;
+  toggleStateService?: ButtonService;
 
-  constructor(
-    platform: BondPlatform,
-    accessory: PlatformAccessory,
-    bond: Bond) {
+  constructor(platform: BondPlatform, accessory: PlatformAccessory, bond: Bond) {
     this.platform = platform;
     this.accessory = accessory;
     const device: Device = accessory.context.device;
@@ -24,14 +21,14 @@ export class ShadesAccessory implements BondAccessory  {
     this.windowCoveringService = new WindowCoveringService(platform, accessory);
     if (platform.config.include_toggle_state) {
       this.toggleStateService = new ButtonService(platform, accessory, 'Toggle State', 'ToggleState');
-    } else {  
+    } else {
       this.removeService('Toggle State');
     }
 
     if (Device.MShasPreset(device)) {
       this.presetService = new ButtonService(platform, accessory, 'Preset', 'Preset');
     }
-    
+
     this.observe(bond);
   }
 
@@ -45,7 +42,7 @@ export class ShadesAccessory implements BondAccessory  {
 
   private observe(bond: Bond): void {
     const device: Device = this.accessory.context.device;
-    
+
     this.observeWindowCovering(bond, device);
     this.observePreset(bond, device);
     this.observeToggleState(bond, device);
@@ -58,10 +55,10 @@ export class ShadesAccessory implements BondAccessory  {
     }
 
     // Set initial state
-    bond.api.getState(device.id).then(state => {
+    bond.api.getState(device.id).then((state) => {
       this.updateState(state);
     });
-    
+
     const props = {
       minValue: 0,
       maxValue: 100,
@@ -71,13 +68,37 @@ export class ShadesAccessory implements BondAccessory  {
 
     Observer.set(this.windowCoveringService.targetPosition, (value, callback) => {
       // Since we can't really track state, just toggle open / closed
-      bond.api.toggleOpen(device, callback)
-        .then(() => {
-          this.platform.debug(this.accessory, `Toggled open: ${value}`);
-        })
-        .catch((error: string) => {
-          this.platform.error(this.accessory, `Error toggling open: ${error}`);
-        });
+      bond.api.getState(device.id).then((state) => {
+        if (state.open) {
+          this.platform.debug(this.accessory, 'Issuing close command');
+          bond.api
+            .closeBlinds(device, callback)
+            .then(() => {
+              this.platform.debug(this.accessory, `Close command: ${value}`);
+            })
+            .catch((error: string) => {
+              this.platform.error(this.accessory, `Error issuing close command: ${error}`);
+            });
+        } else {
+          this.platform.debug(this.accessory, 'Issuing open command');
+          bond.api
+            .openBlinds(device, callback)
+            .then(() => {
+              this.platform.debug(this.accessory, `Open command: ${value}`);
+            })
+            .catch((error: string) => {
+              this.platform.error(this.accessory, `Error issuing open command: ${error}`);
+            });
+        }
+      });
+      // bond.api
+      //   .toggleOpen(device, callback)
+      //   .then(() => {
+      //     this.platform.debug(this.accessory, `Toggled open: ${value}`);
+      //   })
+      //   .catch((error: string) => {
+      //     this.platform.error(this.accessory, `Error toggling open: ${error}`);
+      //   });
     });
   }
 
@@ -87,7 +108,8 @@ export class ShadesAccessory implements BondAccessory  {
     }
 
     Observer.set(this.presetService.on, (_, callback) => {
-      bond.api.preset(device, callback)
+      bond.api
+        .preset(device, callback)
         .then(() => {
           this.platform.debug(this.accessory, 'Executed shade preset');
         })
@@ -103,7 +125,8 @@ export class ShadesAccessory implements BondAccessory  {
     }
 
     Observer.set(this.toggleStateService.on, (_, callback) => {
-      bond.api.toggleState(device, 'open', callback)
+      bond.api
+        .toggleState(device, 'open', callback)
         .then(() => {
           this.platform.debug(this.accessory, `${device.name} open state toggled`);
         })

@@ -15,7 +15,7 @@ const intformat = require('biguint-format');
 enum HTTPMethod {
   GET = 'get',
   PUT = 'put',
-  PATCH = 'patch'
+  PATCH = 'patch',
 }
 
 const flakeIdGen = new FlakeId();
@@ -25,13 +25,14 @@ export class BondApi {
   private uri: BondUri;
   private ms_between_actions?: number;
   private queueNextRequest = false;
-  private requestQueue: {device: Device, action: Action, body: unknown}[] = [];
+  private requestQueue: { device: Device; action: Action; body: unknown }[] = [];
 
   constructor(
     private readonly platform: BondPlatform,
     bondToken: string,
     ipAddress: string,
-    ms_between_actions?: number) {
+    ms_between_actions?: number,
+  ) {
     this.bondToken = bondToken;
     this.uri = new BondUri(ipAddress);
     this.ms_between_actions = ms_between_actions;
@@ -67,8 +68,8 @@ export class BondApi {
 
   public getDeviceIds(): Promise<string[]> {
     const req = this.request(HTTPMethod.GET, this.uri.deviceIds());
-    return req.then(json =>
-      Object.keys(json).filter(x => {
+    return req.then((json) =>
+      Object.keys(json).filter((x) => {
         // Ignore anything that is an empty string or starts with underscores
         return x.length > 0 && !/^_+/.test(x);
       }),
@@ -77,7 +78,7 @@ export class BondApi {
 
   public getDevices(ids: string[]): Promise<Device[]> {
     const ps: Promise<Device>[] = [];
-    ids.forEach(id => {
+    ids.forEach((id) => {
       ps.push(this.getDevice(id));
     });
     return Promise.all(ps);
@@ -85,15 +86,15 @@ export class BondApi {
 
   private getDevice(id: string): Promise<Device> {
     const req = this.request(HTTPMethod.GET, this.uri.device(id));
-    return req.then(json => {
+    return req.then((json) => {
       // Set the id since it's not included in the response
       json.id = id;
       // get the properties of the device
-      return this.getProperties(id).then(properties => {
+      return this.getProperties(id).then((properties) => {
         json.properties = properties;
         if (json.commands) {
           // commands are only present on Bridge devices.
-          return this.getCommands(id).then(commands => {
+          return this.getCommands(id).then((commands) => {
             json.commands = commands;
             return json;
           });
@@ -106,10 +107,17 @@ export class BondApi {
 
   // Actions
 
-  private action(device: Device, action: Action, callback: CharacteristicSetCallback, body: unknown = {}): Promise<void> {
-    return (this.ms_between_actions ? 
-      this.queueRequest(device, action, body) :
-      this.request(HTTPMethod.PUT, this.uri.action(device.id, action), body))
+  private action(
+    device: Device,
+    action: Action,
+    callback: CharacteristicSetCallback,
+    body: unknown = {},
+  ): Promise<void> {
+    return (
+      this.ms_between_actions
+        ? this.queueRequest(device, action, body)
+        : this.request(HTTPMethod.PUT, this.uri.action(device.id, action), body)
+    )
       .then(() => {
         callback(null);
       })
@@ -120,7 +128,7 @@ export class BondApi {
 
   private queueRequest(device: Device, action: Action, body: unknown): Promise<void> {
     if (this.queueNextRequest) {
-      this.requestQueue.push({device, action, body});
+      this.requestQueue.push({ device, action, body });
     } else {
       this.queueNextRequest = true;
       this.request(HTTPMethod.PUT, this.uri.action(device.id, action), body);
@@ -184,7 +192,7 @@ export class BondApi {
   }
 
   public toggleFan(device: Device, on: CharacteristicValue, callback: CharacteristicSetCallback): Promise<void> {
-    const action = on as boolean ? Action.TurnOn : Action.TurnOff;
+    const action = (on as boolean) ? Action.TurnOn : Action.TurnOff;
     return this.action(device, action, callback);
   }
 
@@ -198,6 +206,26 @@ export class BondApi {
 
   public toggleOpen(device: Device, callback: CharacteristicSetCallback): Promise<void> {
     return this.action(device, Action.ToggleOpen, callback);
+  }
+
+  public openBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
+    this.action(device, Action.Open, () => {
+      return;
+    });
+    this.action(device, Action.Open, () => {
+      return;
+    });
+    return this.action(device, Action.Open, callback);
+  }
+
+  public closeBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
+    this.action(device, Action.Close, () => {
+      return;
+    });
+    this.action(device, Action.Close, () => {
+      return;
+    });
+    return this.action(device, Action.Close, callback);
   }
 
   public preset(device: Device, callback: CharacteristicSetCallback): Promise<void> {
@@ -244,29 +272,28 @@ export class BondApi {
 
   // PATCH: Toggle state property for a device
   public toggleState(device: Device, property: string, callback: CharacteristicSetCallback): Promise<void> {
-    return this.getState(device.id)
-      .then(state => {
-        if(property !== 'open' && property !== 'power' && property !== 'light' ) {
-          callback(null);
-          throw Error(`This device does not have ${property} in it's Bond state`);
-        }
-        if (state[property] !== undefined) {
-          const newState: BondState = {};
-          newState[property] = state[property] === 1 ? 0 : 1;
-          return this.updateState(device, newState, callback);
-        } else {
-          callback(null);
-          throw Error(`This device does not have ${property} in it's Bond state`);
-        }
-      });
+    return this.getState(device.id).then((state) => {
+      if (property !== 'open' && property !== 'power' && property !== 'light') {
+        callback(null);
+        throw Error(`This device does not have ${property} in it's Bond state`);
+      }
+      if (state[property] !== undefined) {
+        const newState: BondState = {};
+        newState[property] = state[property] === 1 ? 0 : 1;
+        return this.updateState(device, newState, callback);
+      } else {
+        callback(null);
+        throw Error(`This device does not have ${property} in it's Bond state`);
+      }
+    });
   }
 
   // Commands
 
   private getCommands(deviceId: string): Promise<Command[]> {
-    return this.getCommandIds(deviceId).then(ids => {
+    return this.getCommandIds(deviceId).then((ids) => {
       const ps: Promise<Command>[] = [];
-      ids.forEach(id => {
+      ids.forEach((id) => {
         ps.push(this.getCommand(deviceId, id));
       });
       return Promise.all(ps);
@@ -275,8 +302,8 @@ export class BondApi {
 
   private getCommandIds(id: string): Promise<string[]> {
     const req = this.request(HTTPMethod.GET, this.uri.commands(id));
-    return req.then(json =>
-      Object.keys(json).filter(x => {
+    return req.then((json) =>
+      Object.keys(json).filter((x) => {
         // Ignore anything that is an empty string or starts with underscores
         return x.length > 0 && !/^_+/.test(x);
       }),
@@ -330,11 +357,11 @@ export class BondApi {
       data: body,
       timeout: 10000,
     })
-      .then(response => {
+      .then((response) => {
         this.platform.log.debug(`Response (${bondUuid}) [${method} ${uri}] - ${JSON.stringify(response.data)}`);
         return response.data;
       })
-      .catch((error: Error | AxiosError) =>  {
+      .catch((error: Error | AxiosError) => {
         if (axios.isAxiosError(error) && error.response) {
           const response = error.response;
           switch (response.status) {
@@ -342,7 +369,9 @@ export class BondApi {
               this.platform.log.error('Unauthorized. Please check the `token` in your config to see if it is correct.');
               return;
             default:
-              this.platform.log.error(`A request error occurred: [status] ${response.status} [statusText] ${response.statusText}`);
+              this.platform.log.error(
+                `A request error occurred: [status] ${response.status} [statusText] ${response.statusText}`,
+              );
           }
         } else {
           this.platform.log.error(`A request error occurred: ${JSON.stringify(error)}`);
