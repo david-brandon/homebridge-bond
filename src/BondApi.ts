@@ -215,10 +215,22 @@ export class BondApi {
     this.action(device, Action.Open, () => {
       return;
     });
+    this.action(device, Action.Open, () => {
+      return;
+    });
+    this.action(device, Action.Open, () => {
+      return;
+    });
     return this.action(device, Action.Open, callback);
   }
 
   public closeBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
+    this.action(device, Action.Close, () => {
+      return;
+    });
+    this.action(device, Action.Close, () => {
+      return;
+    });
     this.action(device, Action.Close, () => {
       return;
     });
