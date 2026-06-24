@@ -26,6 +26,7 @@ export class BondApi {
   private ms_between_actions?: number;
   private queueNextRequest = false;
   private requestQueue: { device: Device; action: Action; body: unknown }[] = [];
+  private repeat_actions?: number = 7;
 
   constructor(
     private readonly platform: BondPlatform,
@@ -209,34 +210,24 @@ export class BondApi {
   }
 
   public openBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
-    this.action(device, Action.Open, () => {
-      return;
-    });
-    this.action(device, Action.Open, () => {
-      return;
-    });
-    this.action(device, Action.Open, () => {
-      return;
-    });
-    this.action(device, Action.Open, () => {
-      return;
-    });
+    if (this.repeat_actions && this.repeat_actions > 1) {
+      for (let i = 0; i < this.repeat_actions; i++) {
+        this.action(device, Action.Open, () => {
+          return;
+        });
+      }
+    }
     return this.action(device, Action.Open, callback);
   }
 
   public closeBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
-    this.action(device, Action.Close, () => {
-      return;
-    });
-    this.action(device, Action.Close, () => {
-      return;
-    });
-    this.action(device, Action.Close, () => {
-      return;
-    });
-    this.action(device, Action.Close, () => {
-      return;
-    });
+    if (this.repeat_actions && this.repeat_actions > 1) {
+      for (let i = 0; i < this.repeat_actions; i++) {
+        this.action(device, Action.Close, () => {
+          return;
+        });
+      }
+    }
     return this.action(device, Action.Close, callback);
   }
 
