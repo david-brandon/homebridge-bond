@@ -43,6 +43,13 @@
               "placeholder": "1000",
               "required": false,
               "description": "This will space out commands sent by the Bond by at least this many milliseconds."
+            },
+            "repeat_actions": {
+              "title": "Repeat commands",
+              "type": "number",
+              "placeholder": "1",
+              "required": false,
+              "description": "This will repeat commands a number of times."
             }
           }
         }
