@@ -26,7 +26,7 @@ export class BondApi {
   private ms_between_actions?: number;
   private queueNextRequest = false;
   private requestQueue: { device: Device; action: Action; body: unknown }[] = [];
-  private repeat_actions?: number = 7;
+  private repeat_actions?: number = 1;
 
   constructor(
     private readonly platform: BondPlatform,
