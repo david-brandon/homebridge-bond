@@ -211,7 +211,7 @@ export class BondApi {
 
   public openBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
     if (this.repeat_actions && this.repeat_actions > 1) {
-      for (let i = 0; i < this.repeat_actions; i++) {
+      for (let i = 1; i < this.repeat_actions; i++) {
         this.action(device, Action.Open, () => {
           return;
         });
@@ -222,7 +222,7 @@ export class BondApi {
 
   public closeBlinds(device: Device, callback: CharacteristicSetCallback): Promise<void> {
     if (this.repeat_actions && this.repeat_actions > 1) {
-      for (let i = 0; i < this.repeat_actions; i++) {
+      for (let i = 1; i < this.repeat_actions; i++) {
         this.action(device, Action.Close, () => {
           return;
         });
