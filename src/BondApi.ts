@@ -26,17 +26,19 @@ export class BondApi {
   private ms_between_actions?: number;
   private queueNextRequest = false;
   private requestQueue: { device: Device; action: Action; body: unknown }[] = [];
-  private repeat_actions?: number = 1;
+  private repeat_actions?: number;
 
   constructor(
     private readonly platform: BondPlatform,
     bondToken: string,
     ipAddress: string,
     ms_between_actions?: number,
+    repeat_actions?: number,
   ) {
     this.bondToken = bondToken;
     this.uri = new BondUri(ipAddress);
     this.ms_between_actions = ms_between_actions;
+    this.repeat_actions = repeat_actions ?? 1;
 
     axiosRetry(axios, {
       retries: 10,

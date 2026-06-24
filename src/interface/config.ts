@@ -6,6 +6,7 @@ export interface BondConfig {
   token: string;
   hide_device_ids?: string[];
   ms_between_actions?: number;
+  repeat_actions?: number;
 }
 
 export interface BondPlatformConfig extends PlatformConfig {
@@ -77,6 +78,9 @@ export namespace BondConfig {
     const validSpaceOutActions = config.ms_between_actions === undefined ||
       (typeof(config.ms_between_actions) === 'number' && Number.isInteger(config.ms_between_actions) && config.ms_between_actions > 0);
 
-    return validIP && validToken && validHideDeviceIds && validSpaceOutActions;
+    const validRepeatActions = config.repeat_actions === undefined ||
+      (typeof(config.repeat_actions) === 'number' && Number.isInteger(config.repeat_actions) && config.repeat_actions > 0);
+
+    return validIP && validToken && validHideDeviceIds && validSpaceOutActions && validRepeatActions;
   }
 }
